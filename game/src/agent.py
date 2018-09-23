@@ -13,7 +13,7 @@ class Agent:
         self.memory = []
 
     def get_action(self, state):
-        return np.argmax(self.network.evaluate(state)) - 1
+        return self.network.evaluate(state) - 1
 
     def store(self, state, actions, rewards, new_states):
         self.memory.extend([(state, actions[n], rewards[n], new_states[n]) for n in range(len(actions))])
