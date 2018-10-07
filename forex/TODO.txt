@@ -1,0 +1,4 @@
+- loading and transforming data
+- weight initialization
+- computation of stats
+- what else is missing?
