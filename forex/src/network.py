@@ -4,13 +4,14 @@ import tensorflow as tf
 import unittest
 
 class Network:
-    def __init__(self, T: int, M: int, alpha: float, gamma: float):
+    def __init__(self, T: int, M: int, alpha: float, gamma: float, theta: float):
         data_size = 198
         self.gamma = gamma
         self.M = M
         self.data_size = data_size
         self.T = T
         self.alpha = alpha
+        self.theta = theta
 
         self.initialize()
 
@@ -39,10 +40,14 @@ class Network:
         loss = tf.reduce_sum(tf.squared_difference(y, q_value_a))
 
         train_step = tf.train.AdamOptimizer(alpha).minimize(loss)
-        output_action = tf.argmax(q_value, axis=[1])
+        self.output_action = tf.argmax(q_value, axis=1)
 
-        self.state = state, self.y = y, self.action = action, self.train_step = train_step
-        self.output_action = output_action, self.loss = loss, self.q_value = q_value
+        self.state = state
+        self.y = y
+        self.action = action
+        self.train_step = train_step
+        self.loss = loss
+        self.q_value = q_value
 
         self.sess = tf.Session()
         self.sess.run(tf.global_variables_initializer())
@@ -55,7 +60,8 @@ class Network:
         # state_next = tf.placeholder(tf.float32, [M, T, data_size])
         # reward = tf.placeholder(tf.float32, [M, 1])
 
-        state, action, reward, state_next = batch
+        #transform batch of tuples to tuple of batches
+        state, action, reward, state_next = np.swapaxes(np.asarray(batch), 1, 0)
 
         # CALCULATE y:
         # calculate the q_value for state_next with online weights
@@ -77,12 +83,14 @@ class Network:
         return self.sess.run(self.output_action, feed_dict={self.state: state})[0]
 
     def update(self):
-        pass
+        # so-called soft update
+        self.target_weights = (1 - self.theta) * self.target_weights + self.theta * self.sess.run(self.tvars)
 
 
 class TestNetwork(unittest.TestCase):
     def test_init(self):
-        netw = Network(96, 64)
+        net = Network(96, 64, 0.00025, 0.99, 0.001)
+        net.initialize()
 
 
 #from keras.models import Sequential

@@ -21,12 +21,12 @@ class Agent:
         self.memory = self.memory[-self.N:]
 
     def is_memory_filled(self) -> bool:
-        return len(self.memory) != 0
+        return len(self.memory) > self.N / 2
 
     def train(self, update=False):
         # sample random minibatch of state, action, rewards, next_states tuples
-        random.randint(0, self.N)
-        minibatch = None
+        n = len(self.memory)
+        minibatch = [self.memory[i] for i in np.random.permutation(n)[0:self.network.M]]
 
         self.network.train(minibatch)
         if update:
