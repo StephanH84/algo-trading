@@ -1,4 +1,4 @@
-- loading and transforming data
+- loading and transforming data (maybe store them in a database sqlite?)
 - weight initialization
 - computation of stats
 - what else is missing?
