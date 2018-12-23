@@ -3,6 +3,7 @@
 
 from common import load_data_structure
 import math, datetime
+from collections import deque
 
 def time_features(dt):
     min_f = math.sin(2*math.pi * dt.minute / 60.)
@@ -21,10 +22,11 @@ def parse_time(text):
     return datetime.datetime(year, month, day, hour, min, sec)
 
 class Data():
-    def __init__(self, data_folder):
+    def __init__(self, data_folder, T):
         self.closing = None
         self.state_space = None
         self.data_folder = data_folder
+        self.T = T
 
         self.load()
 
@@ -37,12 +39,20 @@ class Data():
         return next(self.it)
 
     def iterator(self):
+        d = deque()
         for v in zip(self.closing[8:], self.state_space):
             closing = v[0][1]
             time = time_features(parse_time(v[0]))
             features = v[1][1]
+            features_total = features
+            features_total.extend(time)
 
-            yield [closing, features, time]
-            
+            d.append(features_total)
+            while len(d) > self.T:
+                d.popleft()
+
+            if len(d) == self.T:
+                yield closing, list(d)
+
     def reset(self):
         self.it = self.iterator()

@@ -12,6 +12,7 @@ class TradingEnv:
         self.portfolio = [initial_value]
         self.actions = []
         self.history = []
+        self.prev_close = None
         self.data = data
         self.spread = 0.08
         self.trade_size = 100000
@@ -21,7 +22,9 @@ class TradingEnv:
         self.portfolio = [self.initial_value]
         self.history = []
         self.data.reset()
-        return self.data.next()
+        closing, state_initial = self.data.next()
+        self.prev_close = closing
+        return state_initial
 
     # Returns: actions, rewards, new_states, selected new_state, done
     def step(self, action) -> object:
@@ -29,23 +32,29 @@ class TradingEnv:
         v_old = self.portfolio[-1]
 
         try:
-            state_next = self.data.next()
+            closing, state_next = self.data.next()
             done = False
         except:
             state_next = None
             done = True
+
         new_states = []
         for a in actions:
             a_ = np.zeros(3, dtype=np.float32)
             a_[a+1] = 1.
             new_states.append(np.append(state_next, a_))
 
-        current_closed = 1.0 # TODO !
-        current_open = 1.0 # TODO !
+        current_closed = closing
+        if self.prev_close is not None:
+            current_open = self.prev_close
+            self.prev_close = current_closed
+        else:
+            raise Exception("No previous close price saved!")
+
         v_new = []
         for a in actions:
             commission = self.trade_size * np.abs(a - self.actions[-1]) * self.spread
-            v_new = v_old + a * self.trade_size * (current_closed - current_open) - commission
+            v_new[a+1] = v_old + a * self.trade_size * (current_closed - current_open) - commission
 
         v_new = np.asarray(v_new)
         rewards = np.log(v_new/v_old)
@@ -67,10 +76,10 @@ class RunAgent:
     def run(self, episodes):
         self.agent.initialize()
 
-        state = self.env.reset() #initial_state
+        state = self.env.reset() # initial_state
 
         for step in range(episodes):
-            action = self.agent.get_action(state) #select greedy action
+            action = self.agent.get_action(state) # select greedy action, exploration is done in step-method
 
             actions, rewards, new_states, state, done = self.env.step(action)
 
@@ -80,7 +89,7 @@ class RunAgent:
 
             self.agent.store(state, actions, rewards, new_states)
 
-            if self.agent.is_memory_filled() and step % T == 0:
+            if self.agent.is_memory_filled() and step % self.agent.network.T == 0: # TODO: Check if this is the right T
                 self.agent.train(update=True)
 
         self.env.print_stats()
