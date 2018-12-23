@@ -5,7 +5,7 @@ import unittest
 
 class Network:
     def __init__(self, T: int, M: int, alpha: float, gamma: float, theta: float):
-        data_size = 198
+        data_size = 8+3+3
         self.gamma = gamma
         self.M = M
         self.data_size = data_size
@@ -29,8 +29,9 @@ class Network:
 
             cell = tf.contrib.rnn.BasicLSTMCell(256)
             state = cell.zero_state(M, dtype=tf.float32)
+            fused_cell = tf.contrib.rnn.FusedRNNCellAdaptor(cell)
             for t in range(T):
-                cell_output, state = cell(h2_reshaped[:, t, :], state)
+                cell_output, state = fused_cell(h2_reshaped[:, t, :], state)
 
             return tf.layers.dense(cell_output, 3, activation="softmax")
 
@@ -91,22 +92,3 @@ class TestNetwork(unittest.TestCase):
     def test_init(self):
         net = Network(96, 64, 0.00025, 0.99, 0.001)
         net.initialize()
-
-
-#from keras.models import Sequential
-#from keras.layers import LSTM, Dense, Activation, Reshape
-#from keras.optimizers import Adam
-#from keras.losses import categorical_crossentropy
-
-# model = Sequential()
-# model.add(Dense(256, input_dim=(data_size,), batch_input_shape=(M * T, data_size)))
-# model.add(Activation("elu"))
-# model.add(Dense(256))
-# model.add(Activation("elu"))
-# model.add(Reshape((T, 256)))
-# model.add(LSTM(256, input_shape=(T, 256)))
-# model.add(Dense(3))
-# model.add(Activation("softmax"))
-# self.model = model
-#
-# model.compile(Adam, loss=categorical_crossentropy)
