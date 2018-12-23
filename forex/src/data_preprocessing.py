@@ -27,6 +27,7 @@ class Data():
         self.state_space = None
         self.data_folder = data_folder
         self.T = T
+        self.n = 0
 
         self.load()
 
@@ -36,6 +37,7 @@ class Data():
         self.it = self.iterator()
 
     def next(self):
+        self.n += 1
         return next(self.it)
 
     def iterator(self):
@@ -56,3 +58,4 @@ class Data():
 
     def reset(self):
         self.it = self.iterator()
+        self.n = 0

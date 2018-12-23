@@ -17,6 +17,21 @@ class TradingEnv:
         self.spread = 0.08
         self.trade_size = 100000
 
+    def merge_state_action(self, state, a_variable):
+        T = len(state)
+        actions_for_state = self.actions[self.data.n: self.data.n+T-2]
+        actions_for_state.append(a_variable)
+        actions_encoded = map(lambda a: self.hot_encoding(a), actions_for_state)
+
+        result = []
+        for s, a in zip(state, actions_encoded):
+            new_s = s[:]
+            new_s.extend(a)
+            result.append(new_s)
+
+        result = np.asarray(result)
+        return result
+
     # Returns: state
     def reset(self) -> object:
         self.portfolio = [self.initial_value]
@@ -24,10 +39,10 @@ class TradingEnv:
         self.data.reset()
         closing, state_initial = self.data.next()
         self.prev_close = closing
-        return state_initial
+        return np.append(np.asarray(state_initial), self.hot_encoding(0))
 
     # Returns: actions, rewards, new_states, selected new_state, done
-    def step(self, action) -> object:
+    def step(self, action) -> object: # TODO: check if everything is correct esp. with the action values and array indexing
         actions = [-1, 0, 1]
         v_old = self.portfolio[-1]
 
@@ -40,9 +55,7 @@ class TradingEnv:
 
         new_states = []
         for a in actions:
-            a_ = np.zeros(3, dtype=np.float32)
-            a_[a+1] = 1.
-            new_states.append(np.append(state_next, a_))
+            new_states.append(self.merge_state_action(state_next, a))
 
         current_closed = closing
         if self.prev_close is not None:
@@ -59,10 +72,15 @@ class TradingEnv:
         v_new = np.asarray(v_new)
         rewards = np.log(v_new/v_old)
 
-        self.actions.append(action+1)
+        self.actions.append(action)
         self.portfolio.append(v_new[action+1])
 
         return actions, rewards, new_states, new_states[action+1], done
+
+    def hot_encoding(self, a):
+        a_ = np.zeros(3, dtype=np.float32)
+        a_[a + 1] = 1.
+        return a_
 
     def print_stats(self):
         pass
