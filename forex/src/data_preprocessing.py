@@ -44,7 +44,7 @@ class Data():
         d = deque()
         for v in zip(self.closing[8:], self.state_space):
             closing = v[0][1]
-            time = time_features(parse_time(v[0]))
+            time = time_features(parse_time(v[0][0]))
             features = v[1][1]
             features_total = features
             features_total.extend(time)

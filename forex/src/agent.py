@@ -9,7 +9,7 @@ class Agent:
         self.N = 480
 
     def initialize(self):
-        self.network.initialize()
+        #self.network.initialize() # TODO: only once
         self.memory = []
 
     def get_action(self, state):

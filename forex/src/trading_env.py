@@ -2,7 +2,8 @@
 from data_preprocessing import Data
 from agent import Agent
 import numpy as np
-T = 96
+from copy import deepcopy
+from common import hot_encoding
 
 # state here means a sequence of Data's states of length T
 # steps are done T days ahead
@@ -19,14 +20,17 @@ class TradingEnv:
 
     def merge_state_action(self, state, a_variable):
         T = len(state)
-        actions_for_state = self.actions[self.data.n: self.data.n+T-2]
+        actions_for_state = self.actions[self.data.n:][:T-1] # TODO: Check indices
         actions_for_state.append(a_variable)
-        actions_encoded = map(lambda a: self.hot_encoding(a), actions_for_state)
+        # TODO: Is there a better way
+        diff = T - len(actions_for_state)
+        if diff > 0:
+            actions_for_state.extend([a_variable] * diff)
 
         result = []
-        for s, a in zip(state, actions_encoded):
-            new_s = s[:]
-            new_s.extend(a)
+        for s, a in zip(state, actions_for_state):
+            new_s = deepcopy(s)
+            new_s.extend(hot_encoding(a))
             result.append(new_s)
 
         result = np.asarray(result)
@@ -37,9 +41,10 @@ class TradingEnv:
         self.portfolio = [self.initial_value]
         self.history = []
         self.data.reset()
+        self.actions.append(0) # TODO: Check if this correct
         closing, state_initial = self.data.next()
         self.prev_close = closing
-        return np.append(np.asarray(state_initial), self.hot_encoding(0))
+        return self.merge_state_action(state_initial, 0)
 
     # Returns: actions, rewards, new_states, selected new_state, done
     def step(self, action) -> object: # TODO: check if everything is correct esp. with the action values and array indexing
@@ -67,7 +72,7 @@ class TradingEnv:
         v_new = []
         for a in actions:
             commission = self.trade_size * np.abs(a - self.actions[-1]) * self.spread
-            v_new[a+1] = v_old + a * self.trade_size * (current_closed - current_open) - commission
+            v_new.append(v_old + a * self.trade_size * (current_closed - current_open) - commission)
 
         v_new = np.asarray(v_new)
         rewards = np.log(v_new/v_old)
@@ -76,11 +81,6 @@ class TradingEnv:
         self.portfolio.append(v_new[action+1])
 
         return actions, rewards, new_states, new_states[action+1], done
-
-    def hot_encoding(self, a):
-        a_ = np.zeros(3, dtype=np.float32)
-        a_[a + 1] = 1.
-        return a_
 
     def print_stats(self):
         pass
