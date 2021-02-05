@@ -11,8 +11,9 @@ def main():
     alpha = 0.00025 # Learning rate
     gamma = 0.99 # Discount factor
     theta = 0.001 # Target network
+    n_units = 32 # number of units in a hidden layer
 
-    RunAgent(TradingEnv(Data(DIRECTORY, T)), Agent(Network(T, M, alpha, gamma, theta))).run(20*T)
+    RunAgent(TradingEnv(Data(DIRECTORY, T)), Agent(Network(T, M, alpha, gamma, theta, n_units))).run(5*T)
 
     # weight initialization!!
 

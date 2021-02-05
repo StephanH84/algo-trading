@@ -5,7 +5,7 @@ from common import hot_encoding
 import unittest
 
 class Network:
-    def __init__(self, T: int, M: int, alpha: float, gamma: float, theta: float):
+    def __init__(self, T: int, M: int, alpha: float, gamma: float, theta: float, n_units: int):
         data_size = 8+3+3
         self.gamma = gamma
         self.M = M
@@ -13,28 +13,30 @@ class Network:
         self.T = T
         self.alpha = alpha
         self.theta = theta
+        self.n_units = n_units
 
         self.initialize()
 
     def initialize(self):
         data_size, M, T, alpha = self.data_size, self.M, self.T, self.alpha
+        n_units = self.n_units
         state = tf.placeholder(tf.float32, [None, T, data_size])
         y = tf.placeholder(tf.float32, [None, 1])
         action = tf.placeholder(tf.float32, [None, 3])
 
         def q_network(input):
             input_reshaped = tf.reshape(input, [-1, data_size])
-            h1 = tf.layers.dense(input_reshaped, 256, activation="elu",
+            h1 = tf.layers.dense(input_reshaped, n_units, activation="elu",
                                  kernel_initializer=tf.initializers.he_normal(),
                                  bias_initializer=tf.initializers.zeros)
-            h2 = tf.layers.dense(h1, 256, activation="elu",
+            h2 = tf.layers.dense(h1, n_units, activation="elu",
                                  kernel_initializer=tf.initializers.he_normal(),
                                  bias_initializer=tf.initializers.zeros)
-            h2_reshaped = tf.reshape(h2, [-1, T, 256])
+            h2_reshaped = tf.reshape(h2, [-1, T, n_units])
             h2_reshuffled = tf.transpose(h2_reshaped, perm=[1, 0, 2])
             # need to shuffle to shape TxMx256 to
 
-            cell = tf.nn.rnn_cell.LSTMCell(256, name='basic_lstm_cell', initializer=tf.initializers.identity)
+            cell = tf.nn.rnn_cell.LSTMCell(n_units, name='basic_lstm_cell', initializer=tf.initializers.identity)
             fused_cell = tf.contrib.rnn.FusedRNNCellAdaptor(cell, True)
             cell_output, states = fused_cell(h2_reshuffled, dtype=tf.float32)
 

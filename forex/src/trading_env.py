@@ -3,16 +3,15 @@ from data_preprocessing import Data
 from agent import Agent
 import numpy as np
 from copy import deepcopy
-from common import hot_encoding
+from common import hot_encoding, save_data_structure, DIRECTORY
 
 # state here means a sequence of Data's states of length T
 # steps are done T days ahead
 class TradingEnv:
     def __init__(self, data: Data, initial_value=100000):
         self.initial_value = initial_value
-        self.portfolio = [initial_value]
+        self.portfolio = [float(initial_value)]
         self.actions = []
-        self.history = []
         self.prev_close = None
         self.data = data
         self.spread = 0.08
@@ -38,8 +37,7 @@ class TradingEnv:
 
     # Returns: state
     def reset(self) -> object:
-        self.portfolio = [self.initial_value]
-        self.history = []
+        self.portfolio = [float(self.initial_value)]
         self.data.reset()
         self.actions.append(0) # TODO: Check if this correct
         closing, state_initial = self.data.next()
@@ -77,13 +75,16 @@ class TradingEnv:
         v_new = np.asarray(v_new)
         rewards = np.log(v_new/v_old)
 
-        self.actions.append(action)
-        self.portfolio.append(v_new[action+1])
+        self.actions.append(int(action))
+        self.portfolio.append(float(v_new[action+1]))
 
         return actions, rewards, new_states, new_states[action+1], done
 
     def print_stats(self):
-        pass
+        # draw portfolio and actions against price curve
+        s = np.random.randint(0, 1000)
+        save_data_structure(self.actions, DIRECTORY + "actions%s.json" % s )
+        save_data_structure(self.portfolio, DIRECTORY + "portfolio%s.json" % s)
 
 
 class RunAgent:
@@ -102,7 +103,6 @@ class RunAgent:
             actions, rewards, new_states, state, done = self.env.step(action)
 
             if done:
-                self.env.print_stats()
                 break
 
             self.agent.store(state, actions, rewards, new_states)
